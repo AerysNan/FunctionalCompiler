@@ -1,4 +1,3 @@
--- | 这是其中一种实现方式的代码框架。你可以参考它，或用你自己的方式实现，只要按需求完成 evalValue :: Program -> Result 就行。
 module EvalValue where
 
 import AST
@@ -11,31 +10,28 @@ data Value
   -- ... more
   deriving (Show, Eq)
 
-data Context = Context { -- 可以用某种方式定义上下文，用于记录变量绑定状态
-                          } deriving (Show, Eq)
+data ValueContext = ValueContext { } deriving (Show, Eq)
 
-type ContextState a = StateT Context Maybe a
+type ValueContextState a = StateT ValueContext Maybe a
 
-getBool :: Expr -> ContextState Bool
+getBool :: Expr -> ValueContextState Bool
 getBool e = do
-  ev <- eval e
+  ev <- evalExprValue e
   case ev of
     VBool b -> return b
     _ -> lift Nothing
 
-eval :: Expr -> ContextState Value
-eval (EBoolLit b) = return $ VBool b
-eval (ENot e) = getBool e >>= \b -> return (VBool $ not b)
+evalExprValue :: Expr -> ValueContextState Value
+evalExprValue (EBoolLit b) = return $ VBool b
+evalExprValue (ENot e) = getBool e >>= \b -> return (VBool $ not b)
 -- ... more
 eval _ = undefined
 
-evalProgram :: Program -> Maybe Value
-evalProgram (Program adts body) = evalStateT (eval body) $
-  Context {  } -- 可以用某种方式定义上下文，用于记录变量绑定状态
-
+evalProgramValue :: Program -> Maybe Value
+evalProgramValue (Program adts body) = evalStateT (evalExprValue body) $ ValueContext { }
 
 evalValue :: Program -> Result
-evalValue p = case evalProgram p of
+evalValue p = case evalProgramValue p of
   Just (VBool b) -> RBool b
   Just (VInt i) -> RInt i
   Just (VChar c) -> RChar c

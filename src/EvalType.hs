@@ -1,29 +1,143 @@
--- | 这是其中一种实现方式的代码框架。你可以参考它，或用你自己的方式实现，只要按需求完成 evalType :: Program -> Maybe Type 就行。
 module EvalType where
-
 import AST
+import Data.Map
 import Control.Monad.State
 
-data Context = Context { -- 可以用某种方式定义上下文，用于记录变量绑定状态
-                       }
-  deriving (Show, Eq)
+type TypeContext = Map String Type
+type TypeContextState a = StateT TypeContext Maybe a
 
-type ContextState a = StateT Context Maybe a
+equatableType = [TInt, TChar, TBool]
+comparableType = [TInt, TChar]
 
-isBool :: Expr -> ContextState Type
-isBool e = do
-  et <- eval e
-  case et of
-    TBool -> return TBool
+typeOf :: Type -> Expr -> TypeContextState Type
+typeOf t expr = do
+  exprType <- evalExprType expr
+  if exprType == t
+    then return t
+    else lift Nothing
+
+isBool :: Expr -> TypeContextState Type
+isBool = typeOf TBool
+
+isInt :: Expr -> TypeContextState Type
+isInt = typeOf TInt
+
+isChar :: Expr -> TypeContextState Type
+isChar = typeOf TChar
+
+someTypeOf :: [Type] -> Expr -> TypeContextState Type
+someTypeOf ts expr = do
+  exprType <- evalExprType expr
+  if exprType `elem` ts
+    then return TBool
+    else lift Nothing
+
+isEquatable :: Expr -> TypeContextState Type
+isEquatable = someTypeOf equatableType
+
+isComparable :: Expr -> TypeContextState Type
+isComparable = someTypeOf comparableType
+
+isOfSameType :: Expr -> Expr -> TypeContextState Type
+isOfSameType expr1 expr2 = do
+  exprType1 <- evalExprType expr1
+  exprType2 <- evalExprType expr2
+  if exprType1 == exprType2
+    then return TBool
+    else lift Nothing
+
+evalPattern :: Type -> (Pattern, Expr) -> TypeContextState Type
+evalPattern patternType (PVar patternName, expr) =
+  withStateT (insert patternName patternType) (evalExprType expr)
+evalPattern TBool (PBoolLit _, expr) =
+  evalExprType expr
+evalPattern TInt (PIntLit _, expr) =
+  evalExprType expr
+evalPattern TChar (PCharLit _, expr) =
+  evalExprType expr
+evalPattern _ _ = lift Nothing
+
+evalExprType :: Expr -> TypeContextState Type
+evalExprType (EBoolLit _) =
+  return TBool
+evalExprType (ENot expr) =
+  isBool expr >> return TBool
+evalExprType (EAnd expr1 expr2) =
+  isBool expr1 >> isBool expr2 >> return TBool
+evalExprType (EOr expr1 expr2) =
+  isBool expr1 >> isBool expr2 >> return TBool
+
+evalExprType (EIntLit _) =
+  return TInt
+evalExprType (EAdd expr1 expr2) =
+  isInt expr1 >> isInt expr2 >> return TInt
+evalExprType (ESub expr1 expr2) =
+  isInt expr1 >> isInt expr2 >> return TInt
+evalExprType (EMul expr1 expr2) =
+  isInt expr1 >> isInt expr2 >> return TInt
+evalExprType (EDiv expr1 expr2) =
+  isInt expr1 >> isInt expr2 >> return TInt
+evalExprType (EMod expr1 expr2) =
+  isInt expr1 >> isInt expr2 >> return TInt
+
+evalExprType (EEq expr1 expr2) =
+  isOfSameType expr1 expr2 >> isEquatable expr1 >> return TBool
+evalExprType (ENeq expr1 expr2) =
+  isOfSameType expr1 expr2 >> isEquatable expr1 >> return TBool
+
+evalExprType (ELt expr1 expr2) =
+  isOfSameType expr1 expr2 >> isComparable expr1 >> return TBool
+evalExprType (EGt expr1 expr2) =
+  isOfSameType expr1 expr2 >> isComparable expr1 >> return TBool
+evalExprType (ELe expr1 expr2) =
+  isOfSameType expr1 expr2 >> isComparable expr1 >> return TBool
+evalExprType (EGe expr1 expr2) =
+  isOfSameType expr1 expr2 >> isComparable expr1 >> return TBool
+
+evalExprType (EIf expr1 expr2 expr3) =
+  isBool expr1 >> isOfSameType expr2 expr3 >> evalExprType expr2
+
+evalExprType (ELambda (argName, argType) expr) = do
+  exprType <- withStateT (insert argName argType) (evalExprType expr)
+  return $ TArrow argType exprType
+
+evalExprType (ELet (patternName, patternExpr) expr) = do
+  patternType <- evalExprType patternExpr
+  withStateT (insert patternName patternType) (evalExprType expr)
+
+evalExprType (ELetRec funcName (argName, argType) (body, bodyType) expr) =
+  withStateT (insert funcName $ TArrow argType bodyType) (evalExprType expr)
+
+evalExprType (EVar s) = do
+  ctx <- get
+  if member s ctx
+    then return $ ctx ! s
+    else lift Nothing
+
+evalExprType (EApply expr1 expr2) = do
+  exprType1 <- evalExprType expr1
+  exprType2 <- evalExprType expr2
+  case exprType1 of
+    TArrow type1 type2 -> if type1 == exprType2
+      then return type2
+      else lift Nothing
     _ -> lift Nothing
 
-eval :: Expr -> ContextState Type
-eval (EBoolLit _) = return TBool
-eval (ENot e) = isBool e >> return TBool
--- ... more
-eval _ = undefined
+evalExprType (ECase expr []) =
+  lift Nothing
+evalExprType (ECase expr [(p, e)]) = do
+  exprType <- evalExprType expr
+  evalPattern exprType (p, e)
+evalExprType (ECase expr ((p, e): cs)) = do
+  exprType <- evalExprType expr
+  caseType <- evalPattern exprType (p, e)
+  t <- evalExprType (ECase expr cs)
+  if caseType == t
+    then return caseType
+    else lift Nothing
 
+evalExprType _ = undefined
 
 evalType :: Program -> Maybe Type
-evalType (Program adts body) = evalStateT (eval body) $
-  Context {  } -- 可以用某种方式定义上下文，用于记录变量绑定状态
+evalType (Program adts body)
+  = evalStateT (evalExprType body) empty
