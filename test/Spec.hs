@@ -21,7 +21,7 @@ main = htfMain testsWithTimeouts
 ------------- Simple Cases Start -------------
 
 -- The program
-tRaw_l00_EBoolLit = 
+tRaw_l00_EBoolLit =
   Program [] $ EBoolLit True
 
 -- The expected value
@@ -30,153 +30,153 @@ tRaw_l00_EBoolLit_value = RBool True
 tRaw_l00_EBoolLit_type = Just TBool
 
 
-tRaw_l01_EIntLit = 
+tRaw_l01_EIntLit =
   Program [] $ EIntLit (-42)
 
 tRaw_l01_EIntLit_value = RInt (-42)
 tRaw_l01_EIntLit_type = Just TInt
 
 
-tRaw_l02_ECharLit = 
+tRaw_l02_ECharLit =
   Program [] $ ECharLit '@'
 
 tRaw_l02_ECharLit_value = RChar '@'
 tRaw_l02_ECharLit_type = Just TChar
 
 
-tRaw_l03_ENot = 
+tRaw_l03_ENot =
   Program [] $ ENot (EBoolLit False)
 
 tRaw_l03_ENot_value = RBool True
 tRaw_l03_ENot_type = Just TBool
 
 -- The program, not well-typed
-tRaw_l03_ENot_bad = 
+tRaw_l03_ENot_bad =
   Program [] $ ENot (EIntLit (-42))
 
 -- The expected type (Nothing, because the program is not well-typed)
 tRaw_l03_ENot_bad_type = Nothing
 
 
-tRaw_l04_EAnd = 
+tRaw_l04_EAnd =
   Program [] $ EAnd (EBoolLit True) (EBoolLit False)
 
 tRaw_l04_EAnd_value = RBool False
 tRaw_l04_EAnd_type = Just TBool
 
 
-tRaw_l04_EAnd_bad = 
+tRaw_l04_EAnd_bad =
   Program [] $ EAnd (EBoolLit True) (EIntLit (-42))
 
 tRaw_l04_EAnd_bad_type = Nothing
 
 
-tRaw_l05_EOr = 
+tRaw_l05_EOr =
   Program [] $ EOr (EBoolLit False) (EBoolLit True)
 
 tRaw_l05_EOr_value = RBool True
 tRaw_l05_EOr_type = Just TBool
 
 
-tRaw_l05_EOr_bad = 
+tRaw_l05_EOr_bad =
   Program [] $ EOr (EBoolLit False) (EIntLit (-42))
 
 tRaw_l05_EOr_bad_type = Nothing
 
 
-tRaw_l06_EAdd = 
+tRaw_l06_EAdd =
   Program [] $ EAdd (EIntLit 40) (EIntLit 2)
 
 tRaw_l06_EAdd_value = RInt 42
 tRaw_l06_EAdd_type = Just TInt
 
 
-tRaw_l06_EAdd_bad = 
+tRaw_l06_EAdd_bad =
   Program [] $ EAdd (EIntLit 40) (EBoolLit False)
 
 tRaw_l06_EAdd_bad_type = Nothing
 
 
-tRaw_l07_ESub = 
+tRaw_l07_ESub =
   Program [] $ ESub (EIntLit 40) (EIntLit 2)
 
 tRaw_l07_ESub_value = RInt 38
 tRaw_l07_ESub_type = Just TInt
 
 
-tRaw_l07_ESub_bad = 
+tRaw_l07_ESub_bad =
   Program [] $ ESub (EIntLit 40) (EBoolLit False)
 
 tRaw_l07_ESub_bad_type = Nothing
 
 
-tRaw_l08_EMul = 
+tRaw_l08_EMul =
   Program [] $ EMul (EIntLit 6) (EIntLit 7)
 
 tRaw_l08_EMul_value = RInt 42
 tRaw_l08_EMul_type = Just TInt
 
 
-tRaw_l08_EMul_bad = 
+tRaw_l08_EMul_bad =
   Program [] $ EMul (EIntLit 40) (EBoolLit False)
 
 tRaw_l08_EMul_bad_type = Nothing
 
 
-tRaw_l09_EDiv = 
+tRaw_l09_EDiv =
   Program [] $ EDiv (EIntLit 85) (EIntLit 2)
 
 tRaw_l09_EDiv_value = RInt 42
 tRaw_l09_EDiv_type = Just TInt
 
 
-tRaw_l09_EDiv_bad = 
+tRaw_l09_EDiv_bad =
   Program [] $ EDiv (EIntLit 40) (EBoolLit False)
 
 tRaw_l09_EDiv_bad_type = Nothing
 
 
-tRaw_l10_EMod = 
+tRaw_l10_EMod =
   Program [] $ EMod (EIntLit 19) (EIntLit 5)
 
 tRaw_l10_EMod_value = RInt 4
 tRaw_l10_EMod_type = Just TInt
 
 
-tRaw_l10_EMod_bad = 
+tRaw_l10_EMod_bad =
   Program [] $ EMod (EIntLit 40) (EBoolLit False)
 
 tRaw_l10_EMod_bad_type = Nothing
 
 
-tRaw_l11_EEq = 
+tRaw_l11_EEq =
   Program [] $ EEq (EIntLit 42) (EIntLit 42)
 
 tRaw_l11_EEq_value = RBool True
 tRaw_l11_EEq_type = Just TBool
 
 
-tRaw_l11_EEq_bad = 
+tRaw_l11_EEq_bad =
   Program [] $ EEq (EIntLit 0) (EBoolLit False)
 
 tRaw_l11_EEq_bad_type = Nothing
 
 
-tRaw_l12_ENeq = 
+tRaw_l12_ENeq =
   Program [] $ ENeq (ECharLit '@') (ECharLit '@')
 
 tRaw_l12_ENeq_value = RBool False
 tRaw_l12_ENeq_type = Just TBool
 
 
-tRaw_l12_ENeq_bad = 
+tRaw_l12_ENeq_bad =
   Program [] $ ENeq (ECharLit '0') (EIntLit 48)
 
 tRaw_l12_ENeq_bad_type = Nothing
 
 
 -- | Unicode
-tRaw_l13_ELt = 
+tRaw_l13_ELt =
   Program [] $ ELt (ECharLit 'A') (ECharLit 'a')
 
 tRaw_l13_ELt_value = RBool True
@@ -184,52 +184,52 @@ tRaw_l13_ELt_type = Just TBool
 
 -- Boolean type in this language is "Eq", but not "Ord".
 -- TODO or, leave it as UB?
-tRaw_l13_ELt_bad = 
+tRaw_l13_ELt_bad =
   Program [] $ ELt (EBoolLit False) (EBoolLit True)
 
 tRaw_l13_ELt_bad_type = Nothing
 
 
-tRaw_l14_EGt = 
+tRaw_l14_EGt =
   Program [] $ EGt (ECharLit 'a') (ECharLit 'A')
 
 tRaw_l14_EGt_value = RBool True
 tRaw_l14_EGt_type = Just TBool
 
 
-tRaw_l14_EGt_bad = 
+tRaw_l14_EGt_bad =
   Program [] $ EGt (ECharLit '0') (EIntLit 48)
 
 tRaw_l14_EGt_bad_type = Nothing
 
 
-tRaw_l15_ELe = 
+tRaw_l15_ELe =
   Program [] $ ELe (ECharLit '@') (ECharLit '@')
 
 tRaw_l15_ELe_value = RBool True
 tRaw_l15_ELe_type = Just TBool
 
 
-tRaw_l15_ELe_bad = 
+tRaw_l15_ELe_bad =
   Program [] $ ELe (ECharLit '0') (EIntLit 48)
 
 tRaw_l15_ELe_bad_type = Nothing
 
 
-tRaw_l16_EGe = 
+tRaw_l16_EGe =
   Program [] $ EGe (EIntLit 4) (EIntLit 2)
 
 tRaw_l16_EGe_value = RBool True
 tRaw_l16_EGe_type = Just TBool
 
 
-tRaw_l16_EGe_bad = 
+tRaw_l16_EGe_bad =
   Program [] $ EGe (ECharLit '0') (EIntLit 48)
 
 tRaw_l16_EGe_bad_type = Nothing
 
 
-tRaw_l17_EIf = 
+tRaw_l17_EIf =
   Program [] $ EIf (EBoolLit False) (EIntLit 42) (EIntLit 233)
 
 tRaw_l17_EIf_value = RInt 233
@@ -237,14 +237,14 @@ tRaw_l17_EIf_type = Just TInt
 
 
 -- the condition is not of boolean type
-tRaw_l17_EIf_bad_0 = 
+tRaw_l17_EIf_bad_0 =
   Program [] $ EIf (ECharLit 'T') (EIntLit 42) (EIntLit 233)
 
 tRaw_l17_EIf_bad_0_type = Nothing
 
 
 -- `then` branch and `else` branch are of different types
-tRaw_l17_EIf_bad_1 = 
+tRaw_l17_EIf_bad_1 =
   Program [] $ EIf (EBoolLit True) (ECharLit '0') (EIntLit 48)
 
 tRaw_l17_EIf_bad_1_type = Nothing
@@ -252,10 +252,10 @@ tRaw_l17_EIf_bad_1_type = Nothing
 
 -- An expression, which is an anonymous function, like \x -> x+1 in Haskell (but the parameter type is specified to TInt)
 expr_Int_succ = ELambda ("x",TInt) (EAdd (EVar "x") (EIntLit 1))
--- You may want to write a `evalTypeInternal :: Expr -> Maybe Type` 
+-- You may want to write a `evalTypeInternal :: Expr -> Maybe Type`
 -- to evaluate that `evalTypeInternal expr_Int_succ == Just (TArrow TInt TInt)`
 
-tRaw_l18_ELambda_only_typecheck = 
+tRaw_l18_ELambda_only_typecheck =
   Program [] expr_Int_succ
 
 tRaw_l17_EIf_ELambda_only_typecheck_type = Just (TArrow TInt TInt)
@@ -263,13 +263,13 @@ tRaw_l17_EIf_ELambda_only_typecheck_type = Just (TArrow TInt TInt)
 
 expr_Int_succ_bad = ELambda ("x",TBool) (EAdd (EVar "x") (EIntLit 1))
 
-tRaw_l18_ELambda_bad = 
+tRaw_l18_ELambda_bad =
   Program [] expr_Int_succ_bad
 
 tRaw_l18_ELambda_bad_type = Nothing
 
 
-tRaw_l19_EApply = 
+tRaw_l19_EApply =
   Program [] $ EApply expr_Int_succ (EIntLit 41)
 
 tRaw_l19_EApply_value = RInt 42
@@ -283,14 +283,14 @@ tRaw_l19_EApply_bad_type = Nothing
 
 
 -- let x = 41 in x + 1
-tRaw_l20_ELet_0 = 
+tRaw_l20_ELet_0 =
   Program [] $ ELet ("x", EIntLit 41) (EAdd (EVar "x") (EIntLit 1))
 
 tRaw_l20_ELet_0_value = RInt 42
 tRaw_l20_ELet_0_type = Just TInt
 
 -- let x = False in x + 1
-tRaw_l20_ELet_0_bad = 
+tRaw_l20_ELet_0_bad =
   Program [] $ ELet ("x", EBoolLit False) (EAdd (EVar "x") (EIntLit 1))
 
 tRaw_l20_ELet_0_bad_type = Nothing
@@ -298,7 +298,7 @@ tRaw_l20_ELet_0_bad_type = Nothing
 
 -- let even = (\x -> x `mod` 2 == 0) in even 42
 expr_even = ELambda ("x",TInt) (EEq (EMod (EVar "x") (EIntLit 2)) (EIntLit 0))
-tRaw_l20_ELet_1 = 
+tRaw_l20_ELet_1 =
   Program [] $ ELet ("even", expr_even) (EApply (EVar "even") (EIntLit 42))
 
 tRaw_l20_ELet_1_value = RBool True
@@ -314,34 +314,34 @@ tRaw_l20_ELet_1_bad_type = Nothing
 -- let fact = (\x -> if x == 0 then 1 else x * fact (x-1)) :: Int -> Int in fact 5
 expr_fact = EIf (EEq (EVar "x") (EIntLit 0))
   (EIntLit 1)
-  (EMul 
-    (EVar "x") 
-    (EApply 
-      (EVar "fact") 
+  (EMul
+    (EVar "x")
+    (EApply
+      (EVar "fact")
       (ESub (EVar "x") (EIntLit 1))
       )
     )
-  
-tRaw_l21_ELetRec_0 = 
+
+tRaw_l21_ELetRec_0 =
   Program [] $ ELetRec "fact" ("x", TInt) (expr_fact, TInt) (EApply (EVar "fact") (EIntLit 5))
 
 tRaw_l21_ELetRec_0_value = RInt 120
 tRaw_l21_ELetRec_0_type = Just TInt
 
 -- let fact = (\x -> if x == 0 then 1 else x * fact (x-1)) :: Int -> Bool in fact 5
-tRaw_l21_ELetRec_0_bad_0 = 
+tRaw_l21_ELetRec_0_bad_0 =
   Program [] $ ELetRec "fact" ("x", TInt) (expr_fact, TBool) (EApply (EVar "fact") (EIntLit 5))
 
 tRaw_l21_ELetRec_0_bad_0_type = Nothing
 
 -- let fact = (\x -> if x == 0 then 1 else x * fact (x-1)) :: Bool -> Int in fact 5
-tRaw_l21_ELetRec_0_bad_1 = 
+tRaw_l21_ELetRec_0_bad_1 =
   Program [] $ ELetRec "fact" ("x", TBool) (expr_fact, TInt) (EApply (EVar "fact") (EIntLit 5))
 
 tRaw_l21_ELetRec_0_bad_1_type = Nothing
 
 -- let fact = (\x -> if x == 0 then 1 else x * fact (x-1)) :: Int -> Int in fact True
-tRaw_l21_ELetRec_0_bad_2 = 
+tRaw_l21_ELetRec_0_bad_2 =
   Program [] $ ELetRec "fact" ("x", TInt) (expr_fact, TInt) (EApply (EVar "fact") (EBoolLit True))
 
 tRaw_l21_ELetRec_0_bad_2_type = Nothing

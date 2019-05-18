@@ -46,16 +46,17 @@ isOfSameType expr1 expr2 = do
     then return TBool
     else lift Nothing
 
-evalPattern :: Type -> (Pattern, Expr) -> TypeContextState Type
-evalPattern patternType (PVar patternName, expr) =
+evalPatternType :: Type -> (Pattern, Expr) -> TypeContextState Type
+evalPatternType TBool (PBoolLit _, expr) =
+  evalExprType expr
+evalPatternType TInt (PIntLit _, expr) =
+  evalExprType expr
+evalPatternType TChar (PCharLit _, expr) =
+  evalExprType expr
+evalPatternType patternType (PVar patternName, expr) =
   withStateT (insert patternName patternType) (evalExprType expr)
-evalPattern TBool (PBoolLit _, expr) =
-  evalExprType expr
-evalPattern TInt (PIntLit _, expr) =
-  evalExprType expr
-evalPattern TChar (PCharLit _, expr) =
-  evalExprType expr
-evalPattern _ _ = lift Nothing
+-- TODO: PData String [Pattern]
+evalPatternType _ _ = lift Nothing
 
 evalExprType :: Expr -> TypeContextState Type
 evalExprType (EBoolLit _) =
@@ -79,6 +80,8 @@ evalExprType (EDiv expr1 expr2) =
   isInt expr1 >> isInt expr2 >> return TInt
 evalExprType (EMod expr1 expr2) =
   isInt expr1 >> isInt expr2 >> return TInt
+evalExprType (ECharLit _) =
+  return TChar
 
 evalExprType (EEq expr1 expr2) =
   isOfSameType expr1 expr2 >> isEquatable expr1 >> return TBool
@@ -105,8 +108,11 @@ evalExprType (ELet (patternName, patternExpr) expr) = do
   patternType <- evalExprType patternExpr
   withStateT (insert patternName patternType) (evalExprType expr)
 
-evalExprType (ELetRec funcName (argName, argType) (body, bodyType) expr) =
-  withStateT (insert funcName $ TArrow argType bodyType) (evalExprType expr)
+evalExprType (ELetRec funcName (argName, argType) (body, bodyType) expr) = do
+  exprType <- withStateT (insert argName argType.insert funcName (TArrow argType bodyType)) (evalExprType body)
+  if bodyType == exprType
+    then withStateT (insert funcName $ TArrow argType bodyType) (evalExprType expr)
+    else lift Nothing
 
 evalExprType (EVar s) = do
   ctx <- get
@@ -127,16 +133,14 @@ evalExprType (ECase expr []) =
   lift Nothing
 evalExprType (ECase expr [(p, e)]) = do
   exprType <- evalExprType expr
-  evalPattern exprType (p, e)
+  evalPatternType exprType (p, e)
 evalExprType (ECase expr ((p, e): cs)) = do
   exprType <- evalExprType expr
-  caseType <- evalPattern exprType (p, e)
+  caseType <- evalPatternType exprType (p, e)
   t <- evalExprType (ECase expr cs)
   if caseType == t
     then return caseType
     else lift Nothing
-
-evalExprType _ = undefined
 
 evalType :: Program -> Maybe Type
 evalType (Program adts body)
