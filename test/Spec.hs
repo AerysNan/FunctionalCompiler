@@ -6,7 +6,7 @@ import System.Timeout(timeout)
 import AST
 import EvalValue
 import EvalType
-
+import Data.List
 
 -- TODO in test report, Failure, not expected timeout 2019-03-06
 addTimeout test = timeout (3*10^6) test >>= assertJustVerbose "3 seconds timeout exceeded"

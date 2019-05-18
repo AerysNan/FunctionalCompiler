@@ -8,7 +8,7 @@ data Value
   = VBool Bool
   | VInt Int
   | VChar Char
-  | VFunc Expr Expr
+  | VFunc String Expr ValueContext
   | VErr
   -- ... more
   deriving (Show, Eq)
@@ -160,14 +160,20 @@ evalExprValue (EIf expr1 expr2 expr3) = do
     else evalExprValue expr3
 
 evalExprValue (ELambda (argName, _) expr) =
-  return $ VFunc (EVar argName) expr
+  gets (VFunc argName expr)
 
 evalExprValue (ELet (patternName, patternExpr) expr) = do
   patternValue <- evalExprValue patternExpr
-  withStateT (insert patternName patternValue) (evalExprValue expr)
+  ctx <- get
+  value <- withStateT (insert patternName patternValue) (evalExprValue expr)
+  put ctx
+  return value
 
-evalExprValue (ELetRec funcName (argName, _) (body, _) expr) =
-  withStateT (insert funcName $ VFunc (EVar argName) body) (evalExprValue expr)
+evalExprValue (ELetRec funcName (argName, _) (body, _) expr) = do
+  ctx <- get
+  value <- withStateT (insert funcName $ VFunc argName body empty) (evalExprValue expr)
+  put ctx
+  return value
 
 evalExprValue (EVar s) = do
   ctx <- get
@@ -179,8 +185,12 @@ evalExprValue (EApply expr1 expr2) = do
   exprValue1 <- evalExprValue expr1
   exprValue2 <- evalExprValue expr2
   case exprValue1 of
-    VFunc (EVar argName) body ->
-      withStateT (insert argName exprValue2) (evalExprValue body)
+    VFunc argName body functionContext -> do
+      ctx <- get
+      value <- withStateT (insert argName exprValue2.union functionContext) (evalExprValue body)
+      -- insert and union cannot be reversed
+      put ctx
+      return value
     _ -> lift Nothing
 
 evalExprValue (ECase expr cases) = do
