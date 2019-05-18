@@ -53,8 +53,11 @@ evalPatternType TInt (PIntLit _, expr) =
   evalExprType expr
 evalPatternType TChar (PCharLit _, expr) =
   evalExprType expr
-evalPatternType patternType (PVar patternName, expr) =
-  withStateT (insert patternName patternType) (evalExprType expr)
+evalPatternType patternType (PVar patternName, expr) = do
+  ctx <- get
+  t <- withStateT (insert patternName patternType) (evalExprType expr)
+  put ctx
+  return t
 -- TODO: PData String [Pattern]
 evalPatternType _ _ = lift Nothing
 
@@ -101,17 +104,28 @@ evalExprType (EIf expr1 expr2 expr3) =
   isBool expr1 >> isOfSameType expr2 expr3 >> evalExprType expr2
 
 evalExprType (ELambda (argName, argType) expr) = do
+  ctx <- get
   exprType <- withStateT (insert argName argType) (evalExprType expr)
+  put ctx
   return $ TArrow argType exprType
 
 evalExprType (ELet (patternName, patternExpr) expr) = do
   patternType <- evalExprType patternExpr
-  withStateT (insert patternName patternType) (evalExprType expr)
+  ctx <- get
+  exprType <- withStateT (insert patternName patternType) (evalExprType expr)
+  put ctx
+  return exprType
 
 evalExprType (ELetRec funcName (argName, argType) (body, bodyType) expr) = do
+  ctx <- get
   exprType <- withStateT (insert argName argType.insert funcName (TArrow argType bodyType)) (evalExprType body)
+  put ctx
   if bodyType == exprType
-    then withStateT (insert funcName $ TArrow argType bodyType) (evalExprType expr)
+    then do
+      ctx <- get
+      t <- withStateT (insert funcName $ TArrow argType bodyType) (evalExprType expr)
+      put ctx
+      return t
     else lift Nothing
 
 evalExprType (EVar s) = do
