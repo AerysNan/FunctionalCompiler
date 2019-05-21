@@ -511,6 +511,119 @@ tRaw_09_apply_type = Just TInt
 
 -------------- Complex Cases End --------------
 
+tRaw_adt_ctor =
+  Program [
+    ADT "tuple3" [("tuple3", [TInt, TInt, TInt])]
+  ] $
+  makeFun ("sum3", TInt) [("x", TInt), ("y", TInt), ("z", TInt)] (
+    EAdd (EAdd (EVar "x") (EVar "y")) (EVar "z")
+  ) $
+  ELet ("v", callFun (EVar "tuple3") [EIntLit 1, EIntLit 2, EIntLit 3]) $
+  ECase (EVar "v") [
+    (PData "tuple3" [PVar "x", PVar "y", PVar "z"], callFun (EVar "sum3") [EVar "x", EVar "y", EVar "z"]),
+    (PVar "_", EIntLit 2333333)
+  ]
+
+tRaw_adt_ctor_type = Just TInt
+tRaw_adt_ctor_value = RInt 6
+
+tRaw_adt_case =
+  Program [
+    ADT "tuple3" [("tuple3", [TInt, TInt, TInt])]
+  ] $
+  ELet ("x", callFun (EVar "tuple3") [EIntLit 1, EIntLit 2, EIntLit 3]) $
+  ECase (EVar "x") [
+    (PData "tuple3" [PIntLit 1, PIntLit 3, PVar "y"], ECharLit '1'),
+    (PData "tuple3" [PIntLit 1, PIntLit 2, PVar "y"], ECharLit '2')
+  ]
+
+tRaw_adt_case_type = Just TChar
+tRaw_adt_case_value = RChar '2'
+
+tRaw_adt_closure =
+  Program [
+    ADT "tuple3" [("tuple3", [TInt, TInt, TInt])]
+  ] $
+  ELet ("x", callFun (EVar "tuple3") [EIntLit 1, EIntLit 2, EIntLit 3]) $
+  ELet ("y", EIntLit 4) $
+  EAdd (
+    ECase (EVar "x") [
+      (PData "tuple3" [PIntLit 1, PIntLit 3, PVar "y"], EVar "y"),
+      (PData "tuple3" [PIntLit 1, PIntLit 2, PVar "y"], EAdd (EVar "y") (EIntLit 5))
+    ]
+  ) (EVar "y")
+
+tRaw_adt_closure_type = Just TInt
+tRaw_adt_closure_value = RInt 12
+
+tRaw_adt_list_sum =
+  Program [
+    ADT "List" [
+      ("Cons", [TInt, TData "List"]),
+      ("Nil", [])
+    ]
+  ] $
+  makeFun ("range", TData "List") [("n", TInt)] (
+    EIf (ELe (EVar "n") (EIntLit 0))
+    (EVar "Nil")
+    (callFun (EVar "Cons") [EVar "n", callFun (EVar "range") [ESub (EVar "n") (EIntLit 1)]])
+  ) $
+  makeFun ("sum", TInt) [("l", TData "List")] (
+    ECase (EVar "l") [
+      (PData "Cons" [PVar "x", PVar "xs"], EAdd (EVar "x") (callFun (EVar "sum") [EVar "xs"])),
+      (PData "Nil" [], EIntLit 0)
+    ]
+  ) $
+  ELet ("l", callFun (EVar "range") [EIntLit 100]) $
+  callFun (EVar "sum") [EVar "l"]
+
+tRaw_adt_list_sum_type = Just TInt
+tRaw_adt_list_sum_value = RInt 5050
+
+tRaw_adt_nested =
+  Program [
+    ADT "tuple3" [("tuple3", [TInt, TInt, TInt])],
+    ADT "List" [
+      ("Cons", [TData "tuple3", TData "List"]),
+      ("Nil", [])
+    ]
+  ] $
+  makeFun ("tupleSum", TData "tuple3") [("t1", TData "tuple3"), ("t2", TData "tuple3")] (
+    ECase (EVar "t1") [
+      (PData "tuple3" [PVar "a1", PVar "b1", PVar "c1"], ECase (EVar "t2") [
+        (PData "tuple3" [PVar "a2", PVar "b2", PVar "c2"], callFun (EVar "tuple3") [EAdd (EVar "a1") (EVar "a2"), EAdd (EVar "b1") (EVar "b2"), EAdd (EVar "c1") (EVar "c2")])
+      ])
+    ]
+  ) $
+  makeFun ("sum3", TInt) [("x", TData "tuple3")] (
+    ECase (EVar "x") [
+      (PData "tuple3" [PVar "a", PVar "b", PVar "c"], EAdd (EAdd (EVar "a") (EVar "b")) (EVar "c"))
+    ]
+  ) $
+  makeFun ("range", TData "List") [("n", TInt)] (
+    EIf (ELe (EVar "n") (EIntLit 0))
+    (EVar "Nil")
+    (callFun (EVar "Cons") [
+      callFun (EVar "tuple3") [
+        (EVar "n"),
+        (EAdd (EVar "n") (EIntLit 1)),
+        (EAdd (EVar "n") (EIntLit 2))
+      ],
+      callFun (EVar "range") [ESub (EVar "n") (EIntLit 1)]])
+  ) $
+  makeFun ("sum", TData "tuple3") [("l", TData "List")] (
+    ECase (EVar "l") [
+      (PData "Cons" [PVar "x", PVar "xs"], callFun (EVar "tupleSum") [(EVar "x"), (callFun (EVar "sum") [EVar "xs"])]),
+      (PData "Nil" [], callFun (EVar "tuple3") [EIntLit 0, EIntLit 0, EIntLit 0])
+    ]
+  ) $
+  ELet ("l", callFun (EVar "range") [EIntLit 10]) $
+  callFun (EVar "sum3") [callFun (EVar "sum") [EVar "l"]]
+
+
+tRaw_adt_nested_type = Just TInt
+tRaw_adt_nested_value = RInt 195
+
 ---------- Real HTF test cases start ----------
 
 -- literals
@@ -624,3 +737,13 @@ test_complex_09_apply_type = assertEqual (tRaw_09_apply_type) (EvalType.evalType
 
 ---------- Real HTF test cases end ----------
 
+test_adt_ctor_type = assertEqual tRaw_adt_ctor_type (EvalType.evalType tRaw_adt_ctor)
+test_adt_ctor_value = assertEqual tRaw_adt_ctor_value (EvalValue.evalValue tRaw_adt_ctor)
+test_adt_case_type = assertEqual tRaw_adt_case_type (EvalType.evalType tRaw_adt_case)
+test_adt_case_value = assertEqual tRaw_adt_case_value (EvalValue.evalValue tRaw_adt_case)
+test_adt_closure_type = assertEqual tRaw_adt_closure_type (EvalType.evalType tRaw_adt_closure)
+test_adt_closure_value = assertEqual tRaw_adt_closure_value (EvalValue.evalValue tRaw_adt_closure)
+test_adt_list_sum_type = assertEqual tRaw_adt_list_sum_type (EvalType.evalType tRaw_adt_list_sum)
+test_adt_list_sum_value = assertEqual tRaw_adt_list_sum_value (EvalValue.evalValue tRaw_adt_list_sum)
+test_adt_nested_type = assertEqual tRaw_adt_nested_type (EvalType.evalType tRaw_adt_nested)
+test_adt_nested_value = assertEqual tRaw_adt_nested_value (EvalValue.evalValue tRaw_adt_nested)

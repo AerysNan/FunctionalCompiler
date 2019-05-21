@@ -120,10 +120,9 @@ evalOneCase TChar (PCharLit _, expr) =
   evalExprType expr
 evalOneCase (TData adtName) (p, expr) = do
   ctx <- get
-  let m = matchPT (getCtors ctx) p (TData adtName) in
-    case m of
-      Nothing -> lift Nothing
-      (Just ctxMap) -> withVars ctxMap (evalExprType expr)
+  case matchPT (getCtors ctx) p (TData adtName) of
+    Nothing -> lift Nothing
+    (Just m) -> withVars m (evalExprType expr)
 evalOneCase _ _ = lift Nothing
 
 ------------------------------------------------------------
