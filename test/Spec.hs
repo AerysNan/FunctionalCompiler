@@ -460,8 +460,7 @@ tRaw_04_church2 =
                 (ELambda ("b", TArrow (TArrow TInt TInt) (TArrow TInt TInt))
                   (ELambda ("f", TArrow TInt TBool)
                     (EApply (EVar "b") (EApply (EVar "a") (EVar "f")))))) $
-
-  (EVar "mult")
+  EVar "mult"
 
 tRaw_04_church2_type = Nothing
 
@@ -605,15 +604,15 @@ tRaw_adt_nested =
     (EVar "Nil")
     (callFun (EVar "Cons") [
       callFun (EVar "tuple3") [
-        (EVar "n"),
-        (EAdd (EVar "n") (EIntLit 1)),
-        (EAdd (EVar "n") (EIntLit 2))
+        EVar "n",
+        EAdd (EVar "n") (EIntLit 1),
+        EAdd (EVar "n") (EIntLit 2)
       ],
       callFun (EVar "range") [ESub (EVar "n") (EIntLit 1)]])
   ) $
   makeFun ("sum", TData "tuple3") [("l", TData "List")] (
     ECase (EVar "l") [
-      (PData "Cons" [PVar "x", PVar "xs"], callFun (EVar "tupleSum") [(EVar "x"), (callFun (EVar "sum") [EVar "xs"])]),
+      (PData "Cons" [PVar "x", PVar "xs"], callFun (EVar "tupleSum") [EVar "x", callFun (EVar "sum") [EVar "xs"]]),
       (PData "Nil" [], callFun (EVar "tuple3") [EIntLit 0, EIntLit 0, EIntLit 0])
     ]
   ) $
@@ -627,113 +626,113 @@ tRaw_adt_nested_value = RInt 195
 ---------- Real HTF test cases start ----------
 
 -- literals
-test_simple_00_EBoolLit_value = assertEqual (tRaw_l00_EBoolLit_value) (EvalValue.evalValue tRaw_l00_EBoolLit)
-test_simple_00_EBoolLit_type = assertEqual (tRaw_l00_EBoolLit_type) (EvalType.evalType tRaw_l00_EBoolLit)
-test_simple_01_EIntLit_value = assertEqual (tRaw_l01_EIntLit_value) (EvalValue.evalValue tRaw_l01_EIntLit)
-test_simple_01_EIntLit_type = assertEqual (tRaw_l01_EIntLit_type) (EvalType.evalType tRaw_l01_EIntLit)
-test_simple_02_ECharLit_value = assertEqual (tRaw_l02_ECharLit_value) (EvalValue.evalValue tRaw_l02_ECharLit)
-test_simple_02_ECharLit_type = assertEqual (tRaw_l02_ECharLit_type) (EvalType.evalType tRaw_l02_ECharLit)
+test_simple_00_EBoolLit_value = assertEqual tRaw_l00_EBoolLit_value (EvalValue.evalValue tRaw_l00_EBoolLit)
+test_simple_00_EBoolLit_type = assertEqual tRaw_l00_EBoolLit_type (EvalType.evalType tRaw_l00_EBoolLit)
+test_simple_01_EIntLit_value = assertEqual tRaw_l01_EIntLit_value (EvalValue.evalValue tRaw_l01_EIntLit)
+test_simple_01_EIntLit_type = assertEqual tRaw_l01_EIntLit_type (EvalType.evalType tRaw_l01_EIntLit)
+test_simple_02_ECharLit_value = assertEqual tRaw_l02_ECharLit_value (EvalValue.evalValue tRaw_l02_ECharLit)
+test_simple_02_ECharLit_type = assertEqual tRaw_l02_ECharLit_type (EvalType.evalType tRaw_l02_ECharLit)
 
 -- boolean operators
-test_simple_03_ENot_value = assertEqual (tRaw_l03_ENot_value) (EvalValue.evalValue tRaw_l03_ENot)
-test_simple_03_ENot_type = assertEqual (tRaw_l03_ENot_type) (EvalType.evalType tRaw_l03_ENot)
-test_simple_03_ENot_type_bad = assertEqual (tRaw_l03_ENot_bad_type) (EvalType.evalType tRaw_l03_ENot_bad)
-test_simple_04_EAnd_value = assertEqual (tRaw_l04_EAnd_value) (EvalValue.evalValue tRaw_l04_EAnd)
-test_simple_04_EAnd_type = assertEqual (tRaw_l04_EAnd_type) (EvalType.evalType tRaw_l04_EAnd)
-test_simple_04_EAnd_type_bad = assertEqual (tRaw_l04_EAnd_bad_type) (EvalType.evalType tRaw_l04_EAnd_bad)
-test_simple_05_EOr_value = assertEqual (tRaw_l05_EOr_value) (EvalValue.evalValue tRaw_l05_EOr)
-test_simple_05_EOr_type = assertEqual (tRaw_l05_EOr_type) (EvalType.evalType tRaw_l05_EOr)
-test_simple_05_EOr_type_bad = assertEqual (tRaw_l05_EOr_bad_type) (EvalType.evalType tRaw_l05_EOr_bad)
+test_simple_03_ENot_value = assertEqual tRaw_l03_ENot_value (EvalValue.evalValue tRaw_l03_ENot)
+test_simple_03_ENot_type = assertEqual tRaw_l03_ENot_type (EvalType.evalType tRaw_l03_ENot)
+test_simple_03_ENot_type_bad = assertEqual tRaw_l03_ENot_bad_type (EvalType.evalType tRaw_l03_ENot_bad)
+test_simple_04_EAnd_value = assertEqual tRaw_l04_EAnd_value (EvalValue.evalValue tRaw_l04_EAnd)
+test_simple_04_EAnd_type = assertEqual tRaw_l04_EAnd_type (EvalType.evalType tRaw_l04_EAnd)
+test_simple_04_EAnd_type_bad = assertEqual tRaw_l04_EAnd_bad_type (EvalType.evalType tRaw_l04_EAnd_bad)
+test_simple_05_EOr_value = assertEqual tRaw_l05_EOr_value (EvalValue.evalValue tRaw_l05_EOr)
+test_simple_05_EOr_type = assertEqual tRaw_l05_EOr_type (EvalType.evalType tRaw_l05_EOr)
+test_simple_05_EOr_type_bad = assertEqual tRaw_l05_EOr_bad_type (EvalType.evalType tRaw_l05_EOr_bad)
 
 -- integer operators
-test_simple_06_EAdd_value = assertEqual (tRaw_l06_EAdd_value) (EvalValue.evalValue tRaw_l06_EAdd)
-test_simple_06_EAdd_type = assertEqual (tRaw_l06_EAdd_type) (EvalType.evalType tRaw_l06_EAdd)
-test_simple_06_EAdd_type_bad = assertEqual (tRaw_l06_EAdd_bad_type) (EvalType.evalType tRaw_l06_EAdd_bad)
-test_simple_07_ESub_value = assertEqual (tRaw_l07_ESub_value) (EvalValue.evalValue tRaw_l07_ESub)
-test_simple_07_ESub_type = assertEqual (tRaw_l07_ESub_type) (EvalType.evalType tRaw_l07_ESub)
-test_simple_07_ESub_type_bad = assertEqual (tRaw_l07_ESub_bad_type) (EvalType.evalType tRaw_l07_ESub_bad)
-test_simple_08_EMul_value = assertEqual (tRaw_l08_EMul_value) (EvalValue.evalValue tRaw_l08_EMul)
-test_simple_08_EMul_type = assertEqual (tRaw_l08_EMul_type) (EvalType.evalType tRaw_l08_EMul)
-test_simple_08_EMul_type_bad = assertEqual (tRaw_l08_EMul_bad_type) (EvalType.evalType tRaw_l08_EMul_bad)
-test_simple_09_EDiv_value = assertEqual (tRaw_l09_EDiv_value) (EvalValue.evalValue tRaw_l09_EDiv)
-test_simple_09_EDiv_type = assertEqual (tRaw_l09_EDiv_type) (EvalType.evalType tRaw_l09_EDiv)
-test_simple_09_EDiv_type_bad = assertEqual (tRaw_l09_EDiv_bad_type) (EvalType.evalType tRaw_l09_EDiv_bad)
-test_simple_10_EMod_value = assertEqual (tRaw_l10_EMod_value) (EvalValue.evalValue tRaw_l10_EMod)
-test_simple_10_EMod_type = assertEqual (tRaw_l10_EMod_type) (EvalType.evalType tRaw_l10_EMod)
-test_simple_10_EMod_type_bad = assertEqual (tRaw_l10_EMod_bad_type) (EvalType.evalType tRaw_l10_EMod_bad)
+test_simple_06_EAdd_value = assertEqual tRaw_l06_EAdd_value (EvalValue.evalValue tRaw_l06_EAdd)
+test_simple_06_EAdd_type = assertEqual tRaw_l06_EAdd_type (EvalType.evalType tRaw_l06_EAdd)
+test_simple_06_EAdd_type_bad = assertEqual tRaw_l06_EAdd_bad_type (EvalType.evalType tRaw_l06_EAdd_bad)
+test_simple_07_ESub_value = assertEqual tRaw_l07_ESub_value (EvalValue.evalValue tRaw_l07_ESub)
+test_simple_07_ESub_type = assertEqual tRaw_l07_ESub_type (EvalType.evalType tRaw_l07_ESub)
+test_simple_07_ESub_type_bad = assertEqual tRaw_l07_ESub_bad_type (EvalType.evalType tRaw_l07_ESub_bad)
+test_simple_08_EMul_value = assertEqual tRaw_l08_EMul_value (EvalValue.evalValue tRaw_l08_EMul)
+test_simple_08_EMul_type = assertEqual tRaw_l08_EMul_type (EvalType.evalType tRaw_l08_EMul)
+test_simple_08_EMul_type_bad = assertEqual tRaw_l08_EMul_bad_type (EvalType.evalType tRaw_l08_EMul_bad)
+test_simple_09_EDiv_value = assertEqual tRaw_l09_EDiv_value (EvalValue.evalValue tRaw_l09_EDiv)
+test_simple_09_EDiv_type = assertEqual tRaw_l09_EDiv_type (EvalType.evalType tRaw_l09_EDiv)
+test_simple_09_EDiv_type_bad = assertEqual tRaw_l09_EDiv_bad_type (EvalType.evalType tRaw_l09_EDiv_bad)
+test_simple_10_EMod_value = assertEqual tRaw_l10_EMod_value (EvalValue.evalValue tRaw_l10_EMod)
+test_simple_10_EMod_type = assertEqual tRaw_l10_EMod_type (EvalType.evalType tRaw_l10_EMod)
+test_simple_10_EMod_type_bad = assertEqual tRaw_l10_EMod_bad_type (EvalType.evalType tRaw_l10_EMod_bad)
 
 
 -- "Eq" operators
-test_simple_11_EEq_value = assertEqual (tRaw_l11_EEq_value) (EvalValue.evalValue tRaw_l11_EEq)
-test_simple_11_EEq_type = assertEqual (tRaw_l11_EEq_type) (EvalType.evalType tRaw_l11_EEq)
-test_simple_11_EEq_type_bad = assertEqual (tRaw_l11_EEq_bad_type) (EvalType.evalType tRaw_l11_EEq_bad)
-test_simple_12_ENeq_value = assertEqual (tRaw_l12_ENeq_value) (EvalValue.evalValue tRaw_l12_ENeq)
-test_simple_12_ENeq_type = assertEqual (tRaw_l12_ENeq_type) (EvalType.evalType tRaw_l12_ENeq)
-test_simple_12_ENeq_type_bad = assertEqual (tRaw_l12_ENeq_bad_type) (EvalType.evalType tRaw_l12_ENeq_bad)
+test_simple_11_EEq_value = assertEqual tRaw_l11_EEq_value (EvalValue.evalValue tRaw_l11_EEq)
+test_simple_11_EEq_type = assertEqual tRaw_l11_EEq_type (EvalType.evalType tRaw_l11_EEq)
+test_simple_11_EEq_type_bad = assertEqual tRaw_l11_EEq_bad_type (EvalType.evalType tRaw_l11_EEq_bad)
+test_simple_12_ENeq_value = assertEqual tRaw_l12_ENeq_value (EvalValue.evalValue tRaw_l12_ENeq)
+test_simple_12_ENeq_type = assertEqual tRaw_l12_ENeq_type (EvalType.evalType tRaw_l12_ENeq)
+test_simple_12_ENeq_type_bad = assertEqual tRaw_l12_ENeq_bad_type (EvalType.evalType tRaw_l12_ENeq_bad)
 
 -- "Ord" operators
-test_simple_13_ELt_value = assertEqual (tRaw_l13_ELt_value) (EvalValue.evalValue tRaw_l13_ELt)
-test_simple_13_ELt_type = assertEqual (tRaw_l13_ELt_type) (EvalType.evalType tRaw_l13_ELt)
-test_simple_13_ELt_type_bad = assertEqual (tRaw_l13_ELt_bad_type) (EvalType.evalType tRaw_l13_ELt_bad)
-test_simple_14_EGt_value = assertEqual (tRaw_l14_EGt_value) (EvalValue.evalValue tRaw_l14_EGt)
-test_simple_14_EGt_type = assertEqual (tRaw_l14_EGt_type) (EvalType.evalType tRaw_l14_EGt)
-test_simple_14_EGt_type_bad = assertEqual (tRaw_l14_EGt_bad_type) (EvalType.evalType tRaw_l14_EGt_bad)
-test_simple_15_ELe_value = assertEqual (tRaw_l15_ELe_value) (EvalValue.evalValue tRaw_l15_ELe)
-test_simple_15_ELe_type = assertEqual (tRaw_l15_ELe_type) (EvalType.evalType tRaw_l15_ELe)
-test_simple_15_ELe_type_bad = assertEqual (tRaw_l15_ELe_bad_type) (EvalType.evalType tRaw_l15_ELe_bad)
-test_simple_16_EGe_value = assertEqual (tRaw_l16_EGe_value) (EvalValue.evalValue tRaw_l16_EGe)
-test_simple_16_EGe_type = assertEqual (tRaw_l16_EGe_type) (EvalType.evalType tRaw_l16_EGe)
-test_simple_16_EGe_type_bad = assertEqual (tRaw_l16_EGe_bad_type) (EvalType.evalType tRaw_l16_EGe_bad)
+test_simple_13_ELt_value = assertEqual tRaw_l13_ELt_value (EvalValue.evalValue tRaw_l13_ELt)
+test_simple_13_ELt_type = assertEqual tRaw_l13_ELt_type (EvalType.evalType tRaw_l13_ELt)
+test_simple_13_ELt_type_bad = assertEqual tRaw_l13_ELt_bad_type (EvalType.evalType tRaw_l13_ELt_bad)
+test_simple_14_EGt_value = assertEqual tRaw_l14_EGt_value (EvalValue.evalValue tRaw_l14_EGt)
+test_simple_14_EGt_type = assertEqual tRaw_l14_EGt_type (EvalType.evalType tRaw_l14_EGt)
+test_simple_14_EGt_type_bad = assertEqual tRaw_l14_EGt_bad_type (EvalType.evalType tRaw_l14_EGt_bad)
+test_simple_15_ELe_value = assertEqual tRaw_l15_ELe_value (EvalValue.evalValue tRaw_l15_ELe)
+test_simple_15_ELe_type = assertEqual tRaw_l15_ELe_type (EvalType.evalType tRaw_l15_ELe)
+test_simple_15_ELe_type_bad = assertEqual tRaw_l15_ELe_bad_type (EvalType.evalType tRaw_l15_ELe_bad)
+test_simple_16_EGe_value = assertEqual tRaw_l16_EGe_value (EvalValue.evalValue tRaw_l16_EGe)
+test_simple_16_EGe_type = assertEqual tRaw_l16_EGe_type (EvalType.evalType tRaw_l16_EGe)
+test_simple_16_EGe_type_bad = assertEqual tRaw_l16_EGe_bad_type (EvalType.evalType tRaw_l16_EGe_bad)
 
 -- if then else. Two kinds of typing error
-test_simple_17_EIf_value = assertEqual (tRaw_l17_EIf_value) (EvalValue.evalValue tRaw_l17_EIf)
-test_simple_17_EIf_type = assertEqual (tRaw_l17_EIf_type) (EvalType.evalType tRaw_l17_EIf)
-test_simple_17_EIf_type_bad_0 = assertEqual (tRaw_l17_EIf_bad_0_type) (EvalType.evalType tRaw_l17_EIf_bad_0)
-test_simple_17_EIf_type_bad_1 = assertEqual (tRaw_l17_EIf_bad_1_type) (EvalType.evalType tRaw_l17_EIf_bad_1)
+test_simple_17_EIf_value = assertEqual tRaw_l17_EIf_value (EvalValue.evalValue tRaw_l17_EIf)
+test_simple_17_EIf_type = assertEqual tRaw_l17_EIf_type (EvalType.evalType tRaw_l17_EIf)
+test_simple_17_EIf_type_bad_0 = assertEqual tRaw_l17_EIf_bad_0_type (EvalType.evalType tRaw_l17_EIf_bad_0)
+test_simple_17_EIf_type_bad_1 = assertEqual tRaw_l17_EIf_bad_1_type (EvalType.evalType tRaw_l17_EIf_bad_1)
 
 -- lambda expression (non-recursive function) definition. No value result!
 -- no test_simple_18_ELambda_value
-test_simple_18_ELambda_only_typecheck = assertEqual (tRaw_l17_EIf_ELambda_only_typecheck_type) (EvalType.evalType tRaw_l18_ELambda_only_typecheck)
-test_simple_18_ELambda_type_bad = assertEqual (tRaw_l18_ELambda_bad_type) (EvalType.evalType tRaw_l18_ELambda_bad)
+test_simple_18_ELambda_only_typecheck = assertEqual tRaw_l17_EIf_ELambda_only_typecheck_type (EvalType.evalType tRaw_l18_ELambda_only_typecheck)
+test_simple_18_ELambda_type_bad = assertEqual tRaw_l18_ELambda_bad_type (EvalType.evalType tRaw_l18_ELambda_bad)
 -- function application
-test_simple_19_EApply_value = assertEqual (tRaw_l19_EApply_value) (EvalValue.evalValue tRaw_l19_EApply)
-test_simple_19_EApply_type = assertEqual (tRaw_l19_EApply_type) (EvalType.evalType tRaw_l19_EApply)
-test_simple_19_EApply_type_bad = assertEqual (tRaw_l19_EApply_bad_type) (EvalType.evalType tRaw_l19_EApply_bad)
+test_simple_19_EApply_value = assertEqual tRaw_l19_EApply_value (EvalValue.evalValue tRaw_l19_EApply)
+test_simple_19_EApply_type = assertEqual tRaw_l19_EApply_type (EvalType.evalType tRaw_l19_EApply)
+test_simple_19_EApply_type_bad = assertEqual tRaw_l19_EApply_bad_type (EvalType.evalType tRaw_l19_EApply_bad)
 
 -- let-in expression
-test_simple_20_ELet_0_value = assertEqual (tRaw_l20_ELet_0_value) (EvalValue.evalValue tRaw_l20_ELet_0)
-test_simple_20_ELet_0_type = assertEqual (tRaw_l20_ELet_0_type) (EvalType.evalType tRaw_l20_ELet_0)
-test_simple_20_ELet_0_type_bad = assertEqual (tRaw_l20_ELet_0_bad_type) (EvalType.evalType tRaw_l20_ELet_0_bad)
-test_simple_20_ELet_1_value = assertEqual (tRaw_l20_ELet_1_value) (EvalValue.evalValue tRaw_l20_ELet_1)
-test_simple_20_ELet_1_type = assertEqual (tRaw_l20_ELet_1_type) (EvalType.evalType tRaw_l20_ELet_1)
-test_simple_20_ELet_1_type_bad = assertEqual (tRaw_l20_ELet_1_bad_type) (EvalType.evalType tRaw_l20_ELet_1_bad)
+test_simple_20_ELet_0_value = assertEqual tRaw_l20_ELet_0_value (EvalValue.evalValue tRaw_l20_ELet_0)
+test_simple_20_ELet_0_type = assertEqual tRaw_l20_ELet_0_type (EvalType.evalType tRaw_l20_ELet_0)
+test_simple_20_ELet_0_type_bad = assertEqual tRaw_l20_ELet_0_bad_type (EvalType.evalType tRaw_l20_ELet_0_bad)
+test_simple_20_ELet_1_value = assertEqual tRaw_l20_ELet_1_value (EvalValue.evalValue tRaw_l20_ELet_1)
+test_simple_20_ELet_1_type = assertEqual tRaw_l20_ELet_1_type (EvalType.evalType tRaw_l20_ELet_1)
+test_simple_20_ELet_1_type_bad = assertEqual tRaw_l20_ELet_1_bad_type (EvalType.evalType tRaw_l20_ELet_1_bad)
 
 
 -- maybe-recursive function definition
-test_simple_21_ELetRec_0_value = assertEqual (tRaw_l21_ELetRec_0_value) (EvalValue.evalValue tRaw_l21_ELetRec_0)
-test_simple_21_ELetRec_0_type = assertEqual (tRaw_l21_ELetRec_0_type) (EvalType.evalType tRaw_l21_ELetRec_0)
-test_simple_21_ELetRec_0_type_bad_0 = assertEqual (tRaw_l21_ELetRec_0_bad_0_type) (EvalType.evalType tRaw_l21_ELetRec_0_bad_0)
-test_simple_21_ELetRec_0_type_bad_1 = assertEqual (tRaw_l21_ELetRec_0_bad_1_type) (EvalType.evalType tRaw_l21_ELetRec_0_bad_1)
-test_simple_21_ELetRec_0_type_bad_2 = assertEqual (tRaw_l21_ELetRec_0_bad_2_type) (EvalType.evalType tRaw_l21_ELetRec_0_bad_2)
+test_simple_21_ELetRec_0_value = assertEqual tRaw_l21_ELetRec_0_value (EvalValue.evalValue tRaw_l21_ELetRec_0)
+test_simple_21_ELetRec_0_type = assertEqual tRaw_l21_ELetRec_0_type (EvalType.evalType tRaw_l21_ELetRec_0)
+test_simple_21_ELetRec_0_type_bad_0 = assertEqual tRaw_l21_ELetRec_0_bad_0_type (EvalType.evalType tRaw_l21_ELetRec_0_bad_0)
+test_simple_21_ELetRec_0_type_bad_1 = assertEqual tRaw_l21_ELetRec_0_bad_1_type (EvalType.evalType tRaw_l21_ELetRec_0_bad_1)
+test_simple_21_ELetRec_0_type_bad_2 = assertEqual tRaw_l21_ELetRec_0_bad_2_type (EvalType.evalType tRaw_l21_ELetRec_0_bad_2)
 
 
-test_complex_00_aplusb_value = assertEqual (tRaw_00_aplusb_value) (EvalValue.evalValue tRaw_00_aplusb)
-test_complex_00_aplusb_type = assertEqual (tRaw_00_aplusb_type) (EvalType.evalType tRaw_00_aplusb)
-test_complex_01_lcm_value = assertEqual (tRaw_01_lcm_value) (EvalValue.evalValue tRaw_01_lcm)
-test_complex_01_lcm_type = assertEqual (tRaw_01_lcm_type) (EvalType.evalType tRaw_01_lcm)
-test_complex_02_church0_value = assertEqual (tRaw_02_church0_value) (EvalValue.evalValue tRaw_02_church0)
-test_complex_02_church0_type = assertEqual (tRaw_02_church0_type) (EvalType.evalType tRaw_02_church0)
+test_complex_00_aplusb_value = assertEqual tRaw_00_aplusb_value (EvalValue.evalValue tRaw_00_aplusb)
+test_complex_00_aplusb_type = assertEqual tRaw_00_aplusb_type (EvalType.evalType tRaw_00_aplusb)
+test_complex_01_lcm_value = assertEqual tRaw_01_lcm_value (EvalValue.evalValue tRaw_01_lcm)
+test_complex_01_lcm_type = assertEqual tRaw_01_lcm_type (EvalType.evalType tRaw_01_lcm)
+test_complex_02_church0_value = assertEqual tRaw_02_church0_value (EvalValue.evalValue tRaw_02_church0)
+test_complex_02_church0_type = assertEqual tRaw_02_church0_type (EvalType.evalType tRaw_02_church0)
 
 -- no test_complex_04_church2_value
-test_complex_04_church2_type = assertEqual (tRaw_04_church2_type) (EvalType.evalType tRaw_04_church2)
+test_complex_04_church2_type = assertEqual tRaw_04_church2_type (EvalType.evalType tRaw_04_church2)
 
-test_complex_06_and_value = assertEqual (tRaw_06_and_value) (EvalValue.evalValue tRaw_06_and)
-test_complex_06_and_type = assertEqual (tRaw_06_and_type) (EvalType.evalType tRaw_06_and)
+test_complex_06_and_value = assertEqual tRaw_06_and_value (EvalValue.evalValue tRaw_06_and)
+test_complex_06_and_type = assertEqual tRaw_06_and_type (EvalType.evalType tRaw_06_and)
 
 -- no test_complex_08_apply_value
-test_complex_08_apply_type = assertEqual (tRaw_08_apply_type) (EvalType.evalType tRaw_08_apply)
-test_complex_09_apply_value = assertEqual (tRaw_09_apply_value) (EvalValue.evalValue tRaw_09_apply)
-test_complex_09_apply_type = assertEqual (tRaw_09_apply_type) (EvalType.evalType tRaw_09_apply)
+test_complex_08_apply_type = assertEqual tRaw_08_apply_type (EvalType.evalType tRaw_08_apply)
+test_complex_09_apply_value = assertEqual tRaw_09_apply_value (EvalValue.evalValue tRaw_09_apply)
+test_complex_09_apply_type = assertEqual tRaw_09_apply_type (EvalType.evalType tRaw_09_apply)
 
 ---------- Real HTF test cases end ----------
 
