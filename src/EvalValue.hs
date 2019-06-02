@@ -234,9 +234,15 @@ evalExprValue (ECase expr cases) = evalCase expr cases
 
 ------------------------------------------------------------
 
+evalSingleStatementValue :: Expr -> ValueContext -> Maybe Value
+evalSingleStatementValue expr =
+  evalStateT (evalExprValue expr)
+
+------------------------------------------------------------
+
 evalProgramValue :: Program -> Maybe Value
 evalProgramValue (Program adts body) =
-  evalStateT (evalExprValue body) (getADTs adts)
+  evalSingleStatementValue body (getADTs adts)
 
 ------------------------------------------------------------
 
@@ -247,3 +253,4 @@ evalValue p =
     Just (VInt i) -> RInt i
     Just (VChar c) -> RChar c
     _ -> RInvalid
+

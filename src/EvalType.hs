@@ -232,6 +232,12 @@ evalExprType (ECase expr patterns) = do
 
 ------------------------------------------------------------
 
+evalSingleStatementType :: Expr -> TypeContext -> Maybe Type
+evalSingleStatementType expr =
+  evalStateT (evalExprType expr)
+
+------------------------------------------------------------
+
 evalType :: Program -> Maybe Type
 evalType (Program adts body) =
-  evalStateT (evalExprType body) $ TypeContext empty (getADTCtors adts)
+  evalSingleStatementType body $ TypeContext empty (getADTCtors adts)
