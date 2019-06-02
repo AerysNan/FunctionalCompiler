@@ -107,6 +107,9 @@ exprOp = [
     [
       InfixL (EAnd <$ symbol "&&"),
       InfixL (EOr <$ symbol "||")
+    ],
+    [
+      InfixL (EAssign <$ symbol "=")
     ]
   ]
 
