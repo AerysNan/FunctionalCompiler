@@ -1,150 +1,241 @@
 module Parser where
 
 import AST
+import Data.Map (insert, empty, singleton, union, Map, member, (!), fromList)
 import Data.Void
-import Text.Megaparsec
-import Text.Megaparsec.Char
+import Data.Char
 import Control.Monad (void)
+import Control.Monad.State
 import Control.Monad.Combinators.Expr
-import qualified Text.Megaparsec.Char.Lexer as L
+import Text.Megaparsec hiding (State, empty)
+import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer as M
+import qualified Data.List as L
 
-type Parser = Parsec Void String
+data ADTContext = ADTContext {
+  getVars :: [String],
+  getCtors :: Map String (String, [Type])
+}
 
-sc :: Parser ()
-sc = L.space space1 lineCmnt blockCmnt
+type TParser = ParsecT Void String (State ADTContext)
+
+
+--消耗所有空白符、换行符
+scn :: TParser ()
+scn = M.space space1 lineCmnt blockCmnt
   where
-    lineCmnt  = L.skipLineComment "//"
-    blockCmnt = L.skipBlockComment "/*" "*/"
+    lineCmnt  = M.skipLineComment "//"
+    blockCmnt = M.skipBlockComment "/*" "*/"
 
-lexeme :: Parser a -> Parser a
-lexeme = L.lexeme sc
+--不消耗换行符，只消耗空白符和制表符
+sc :: TParser ()
+sc = M.space (void $ some (char ' ' <|> char '\t')) lineCmnt blockCmnt
+  where
+    lineCmnt  = M.skipLineComment "//"
+    blockCmnt = M.skipBlockComment "/*" "*/"
 
-symbol :: String -> Parser String
-symbol = L.symbol sc
+lexeme :: TParser a -> TParser a
+lexeme = M.lexeme sc
 
-parens :: Parser a -> Parser a
-parens = between (symbol "(") (symbol ")")
+symbol :: String -> TParser String
+symbol = M.symbol sc
 
-integer :: Parser Integer
-integer = lexeme L.decimal
+-- | 'parens' parses something between parenthesis.
+parens :: TParser a -> TParser a
+parens = between (symbol  "(") (symbol ")")
 
-rword :: String -> Parser ()
+-- |'integerLiteral' parses an integer.
+integer :: TParser Integer
+integer = lexeme M.decimal
+
+-- 关键字
+rword :: String -> TParser ()
 rword w = (lexeme . try) (string w *> notFollowedBy alphaNumChar)
 
-rws :: [String]
-rws = ["not", "if", "then", "else", "let", "in", "lambda"]
+rws :: [String] -- list of reserved words
+rws = ["not","if","then","else","let","in","lambda","case","of","data"]
 
-identifier :: Parser String
+-- 标识符,首字母小写
+identifier :: TParser String
 identifier = (lexeme . try) (p >>= check)
   where
-    p       = (:) <$> letterChar <*> many alphaNumChar
-    check x = if x `elem` rws
+    p       = (:) <$> lowerChar <*> many alphaNumChar
+    check x = if L.elem x rws
                 then fail $ "keyword " ++ show x ++ " cannot be an identifier"
                 else return x
 
-charLiteral :: Parser Char
-charLiteral = between (char '\'') (char '\'') L.charLiteral
+-- 构造函数名，首字母大写
+constructor :: TParser String
+constructor = (lexeme . try) (p >>= check)
+  where
+    p       = (:) <$> upperChar <*> many alphaNumChar
+    check x = if L.elem x rws
+              then fail $ "keyword " ++ show x ++ " cannot be an constructor"
+              else return x
+-- 字符
+charLiteral :: TParser Char
+charLiteral = lexeme $ between (char '\'') (char '\'') M.charLiteral
 
-integerLiteral :: Parser Int
-integerLiteral = fromInteger <$> lexeme L.decimal
+-- 整数
+integerLiteral :: TParser Int
+integerLiteral = fromInteger <$> lexeme M.decimal
 
-typeTerm :: Parser Type
+-- 类型
+typeTerm :: TParser Type
 typeTerm = parens typeParser
       <|> (TBool <$ rword "Bool")
       <|> (TInt <$ rword "Int")
       <|> (TChar <$ rword "Char")
+      <|> adt
 
-typeParser :: Parser Type
-typeParser = makeExprParser typeTerm typeOp
+adt :: TParser Type
+adt = do
+  adtName <- constructor
+  ctx <- get
+  if L.elem adtName (getVars ctx)
+    then return (TData adtName)
+    else fail $ show adtName ++ "not in scope"
 
-typeOp :: [[Operator Parser Type]]
+
+typeParser :: TParser Type
+typeParser = makeExprParser typeTerm  typeOp
+
+typeOp :: [[Operator TParser Type]]
 typeOp = [[InfixR (TArrow <$ symbol "->")]]
 
--- TODO: ADT
+-- 模式
+patternParser :: TParser Pattern
+patternParser = PIntLit <$> integerLiteral  --整数字面量
+          <|> PCharLit <$> charLiteral  --字符字面量
+          <|> PBoolLit True <$ rword "True" --"True"
+          <|> PBoolLit False <$ rword "False" --"False"
+          <|> PVar <$> identifier  -- 变量
+          <|> try (parens pADTParser) --有参数的代数数据类型
+          <|> do                        --无参数的代数数据类型
+                ctorName <- constructor
+                return (PData ctorName [])
 
--- TODO: Pattern
+-- eg: data Maybe = Just Int | Nil
+--     data Either = Left Maybe | Right Char
+--  case Left (Just 1) of
+--       Left (Just 1): 1
+--       Left Nil : 2
+--       Right 'a' : 3
+-- !!!!!!内层的代数数据类型若含有参数要加括号（构造函数左结合，和haskell保持一致）
+pADTParser :: TParser Pattern
+pADTParser = do
+  ctorName <- constructor
+  params <- some patternParser
+  ctx <- get
+  if member ctorName (getCtors ctx)
+    then return (PData ctorName params)
+    else fail $ show ctorName ++ "not in scope"
 
-exprTerm :: Parser Expr
-exprTerm = EIntLit <$> integerLiteral
-      <|> ECharLit <$> charLiteral
-      <|> EBoolLit True <$ rword "True"
-      <|> EBoolLit False <$ rword "False"
-      <|> EVar <$> identifier
-      <|> try ifExpr
-      <|> try lambdaExpr
-      <|> try letExpr
-      <|> try letRecExpr
-      <|> try (parens exprParser)
 
-exprParser :: Parser Expr
+-- 代数类型
+-- TODO
+adtParser :: TParser ADT
+adtParser = do
+  rword "data"
+  adtName <- constructor
+  void (symbol "=")
+  ctx <- get
+  put (ctx{ getVars = (L.insert adtName (getVars ctx))})
+  fstCtor <- singleCtor adtName
+  ctors <- some (symbol "|" *> (singleCtor adtName)) :: TParser [(String, [Type])]
+  return (ADT adtName (fstCtor : ctors))
+
+singleCtor :: String -> TParser (String, [Type])
+singleCtor adtName = do
+  ctorName <- constructor
+  paramsType <- many typeTerm :: TParser [Type]
+  ctx <- get
+  put (ctx{ getCtors = (insert ctorName (adtName, paramsType) (getCtors ctx))})
+  return (ctorName, paramsType)
+
+adtsParser :: TParser [ADT]
+adtsParser = many (adtParser  <* symbol ";") :: TParser [ADT]
+
+--表达式
+exprTerm :: TParser Expr
+exprTerm = EIntLit <$> integerLiteral  --整数字面量
+      <|> ECharLit <$> charLiteral  --字符字面量
+      <|> EBoolLit True <$ rword "True" --"True"
+      <|> EBoolLit False <$ rword "False" --"False"
+      <|> EVar <$> identifier --变量
+      <|> EVar <$> constructor -- 代数数据类型构造函数
+      <|> try ifExpr -- if 表达式
+      <|> try lambdaExpr -- lambda表达式
+      <|> try letExpr    -- let表达式)
+      <|> try letRecExpr -- letRec表达式
+      <|> try indentedCaseParser -- 有缩进case表达式
+      <|> try unindentedCaseParser --无缩进case表达式
+      <|> try (parens exprParser)   -- (算术/逻辑/关系运算)，加括号
+
+
+
+exprParser :: TParser Expr
 exprParser = makeExprParser exprTerm exprOp
 
-exprOp :: [[Operator Parser Expr]]
-exprOp = [
-    [
-      InfixL (EApply <$ symbol "")
-    ],
-    [
-      InfixL (EMul <$ symbol "*"),
-      InfixL (EDiv <$ symbol "/"),
-      InfixL (EMod <$ symbol "%")
-    ],
-    [
-      InfixL (EAdd <$ symbol "+"),
-      InfixL (ESub <$ symbol "-")
-    ],
-    [
-      InfixL (EEq <$ symbol "=="),
-      InfixL (ENeq <$ symbol "!="),
-      InfixL (ELt <$ symbol "<"),
-      InfixL (EGt <$ symbol ">"),
-      InfixL (ELe <$ symbol "<="),
-      InfixL (EGe <$ symbol ">=")
-    ],
-    [
-      Prefix (ENot <$ rword "not")
-    ],
-    [
-      InfixL (EAnd <$ symbol "&&"),
-      InfixL (EOr <$ symbol "||")
-    ],
-    [
-      InfixL (EAssign <$ symbol "=")
-    ]
+exprOp :: [[Operator TParser Expr]]
+exprOp =
+  [ [InfixL (EApply <$ symbol "")]
+  , [InfixL (EMul <$ symbol "*")
+    , InfixL (EDiv <$ symbol "/")
+    , InfixL (EMod <$ symbol "%")]
+  , [InfixL (EAdd <$ symbol "+")
+    , InfixL (ESub <$ symbol "-")]
+  , [InfixL (EEq <$ symbol "==")
+    , InfixL (ENeq <$ symbol "!=")
+    , InfixL (ELt <$ symbol "<")
+    , InfixL (EGt <$ symbol ">")
+    , InfixL (ELe <$ symbol "<=")
+    , InfixL (EGe <$ symbol ">=")]
+  , [Prefix (ENot <$ rword "not")]
+  , [InfixL (EAnd <$ symbol "&&")
+    , InfixL (EOr <$ symbol "||")]
   ]
 
+-- if表达式
 -- eg: if x>0 then x else x+1
-ifExpr :: Parser Expr
+ifExpr :: TParser Expr
 ifExpr = do
   rword "if"
   cond <- exprParser
   rword "then"
-  expr <- exprParser
+  expr1 <- exprParser
   rword "else"
-  EIf cond expr <$> exprParser
+  expr2 <- exprParser
+  return (EIf cond expr1 expr2)
 
---eg: lambda x::Int . (x+1)
-lambdaExpr :: Parser Expr
+--lambda表达式
+--eg: lambda x::Int . x+1
+lambdaExpr :: TParser Expr
 lambdaExpr = do
   rword "lambda"
   var <- identifier
   void (symbol "::")
   ty <- typeParser
   void (symbol ".")
-  ELambda (var,ty) <$> exprParser
+  expr <- exprParser
+  return (ELambda (var,ty) expr)
 
---eg: let n = 1 in (n+1)
-letExpr :: Parser Expr
+--let表达式
+--eg: let n = 1 in n+1
+letExpr :: TParser Expr
 letExpr = do
   rword "let"
   var <- identifier
   void (symbol "=")
-  expr <- exprParser
+  expr1 <- exprParser
   rword "in"
-  ELet (var, expr) <$> exprParser
+  expr2 <- exprParser
+  return (ELet (var,expr1) expr2)
 
---eg: let f = lambda x::tx . (x+1)::ty in (f+2)
-letRecExpr :: Parser Expr
+
+--letRec表达式
+--eg: let f = lambda x::Int . x+1::Int in f+2
+letRecExpr :: TParser Expr
 letRecExpr = do
     rword "let"
     funcName <- identifier
@@ -154,20 +245,74 @@ letRecExpr = do
     void (symbol "::")
     tx <- typeParser
     void (symbol ".")
-    body <- exprParser
+    expr1 <- exprParser
     void (symbol "::")
     ty <- typeParser
     rword "in"
-    ELetRec funcName (var, tx) (body, ty) <$> exprParser
+    expr2 <- exprParser
+    return (ELetRec funcName (var,tx) (expr1,ty) expr2)
 
---eg: (lambda x::Bool.(x &&False)) False
-applyExpr :: Parser Expr
+
+--函数应用表达式
+--eg: lambda x::Bool.x &&False False
+applyExpr :: TParser Expr
 applyExpr = do
-  func <- exprParser
-  EApply func <$> exprParser
+  expr1 <- exprParser
+  expr2 <- exprParser
+  return (EApply expr1 expr2)
 
-wholeParser :: Parser Expr
-wholeParser = between sc eof exprParser
 
-inputParser:: String -> Maybe Expr
-inputParser = parseMaybe (sc >> wholeParser)
+--无缩进的模式匹配
+-- case n of 1: n; x: 2-n;
+-- 各个case缩进保持一致
+unindentedCaseParser :: TParser Expr
+unindentedCaseParser = do
+  rword "case"
+  expr0 <- exprParser
+  rword "of"
+  pairs <- many (pairParser <* symbol ";" ):: TParser [(Pattern,Expr)]
+  return (ECase expr0 pairs)
+
+--有缩进的模式匹配
+-- case 2 of
+--   1: 1
+--   x: 2
+-- 各个case缩进保持一致
+indentedCaseParser :: TParser Expr -- header and list items
+indentedCaseParser = M.nonIndented scn (M.indentBlock scn casePair)
+  where
+    casePair = do
+      rword "case"
+      expr0 <- exprParser
+      rword "of"
+      return (M.IndentSome Nothing (return . (ECase expr0)) pairParser)
+
+pairParser :: TParser (Pattern,Expr)
+pairParser = (do
+  p <- (pADTParser <|> patternParser)
+  void (symbol ":")
+  expr <- exprParser
+  return (p,expr)) <?> "case pair"
+
+
+assignParser :: TParser Statement
+assignParser = do
+  var <- identifier
+  void (symbol"=")
+  Assign var <$> exprParser
+
+statementParser :: TParser Statement
+statementParser = assignParser
+  <|> Class <$> adtParser
+  <|> Single <$> exprParser
+
+
+inputParser:: String -> Either String Statement
+inputParser inpStr = let ep = evalState (runParserT (sc >> statementParser) "" inpStr) (ADTContext [] empty) in
+  case ep of
+    Right p -> Right p
+    Left msg -> Left (errorBundlePretty msg)
+
+
+
+
