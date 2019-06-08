@@ -5,7 +5,8 @@ module AST
   , Expr (..)
   , ADT (..)
   , Program (..)
-  , Result (..) ) where
+  , Result (..)
+  , Statement (..) ) where
 
 
 -- |你的语言里的类型（type），包括基本数据类型、函数类型以及代数数据类型。
@@ -194,8 +195,6 @@ data Expr
   --
   -- 如果你要实现的语言不支持模式匹配，就不用管这个构造函数。
 
-  | EAssign Expr Expr
-
   deriving (Show, Eq)
 
 
@@ -229,3 +228,16 @@ data Result
   -- ^不合法的求值结果，包括 1. 求值发生错误；2. 求值结果并非布尔类型、有限精度整数类型、字符类型。
 
   deriving (Show, Eq)
+
+data Statement =
+
+  Single Expr
+  -- ^表达式
+  | Assign String Expr
+  -- ^bind
+  | Class ADT
+  -- ADT定义
+  deriving (Show, Eq)
+
+
+
