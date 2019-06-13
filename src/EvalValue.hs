@@ -35,6 +35,8 @@ getADTs :: [ADT] -> Map String Value
 getADTs [] = empty
 getADTs (ADT adtName ctors : xs) = getADTCtors adtName ctors `union` getADTs xs
 
+------------------------------------------------------------
+
 getADTCtors :: String -> [(String, [Type])] -> Map String Value
 getADTCtors _ [] = empty
 getADTCtors adtName ((ctorName, argTypes) : xs) =

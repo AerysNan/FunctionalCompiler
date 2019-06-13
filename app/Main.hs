@@ -6,6 +6,7 @@ import EvalType
 import EvalValue
 import System.IO
 import Data.Map
+import Debug.Trace
 
 main :: IO ()
 main = do
@@ -21,29 +22,27 @@ repl tCtx vCtx = do
     else
       let inputExpr = inputParser inputString in
         case inputExpr of
-          Nothing -> do
-            putStrLn "Invalid expression!"
+          (Left errorMsg) -> do
+            putStrLn errorMsg
             repl tCtx vCtx
-          (Just expr) ->
-            case expr of
-              (EAssign var body) ->
-                case var of
-                  (EVar name) ->
-                    case eval body tCtx vCtx of
-                      Nothing -> do
-                        putStrLn "Invalid expression!"
-                        repl tCtx vCtx
-                      (Just (t, v)) -> do
-                        printValue v
-                        repl (tCtx {getVars = insert name t $ getVars tCtx}) (insert name v vCtx)
-                  _ -> do
-                    putStrLn "Invalid expression!"
-                    repl tCtx vCtx
-              _ -> do
-                case eval expr tCtx vCtx of
-                  Nothing -> putStrLn "Invalid expression!"
-                  (Just (t, v)) -> printValue v
+          (Right (Single expr)) ->
+            case eval expr tCtx vCtx of
+              Nothing -> do
+                putStrLn "Invalid expression!"
                 repl tCtx vCtx
+              (Just (t, v)) -> do
+                printValue v
+                repl tCtx vCtx
+          (Right (Assign name expr)) ->
+            case eval expr tCtx vCtx of
+              Nothing -> do
+                putStrLn "Invalid expression!"
+                repl tCtx vCtx
+              (Just (t, v)) -> do
+                printValue v
+                repl (tCtx {getVars = insert name t $ getVars tCtx}) (insert name v vCtx)
+          (Right (Class adt)) ->
+            repl (tCtx {getCtors = union (EvalType.getADTCtors [adt]) $ getCtors tCtx}) (union (getADTs [adt]) vCtx)
 
 eval :: Expr -> TypeContext -> ValueContext -> Maybe (Type, Value)
 eval expr tCtx vCtx =
@@ -56,9 +55,16 @@ eval expr tCtx vCtx =
             Nothing -> Nothing
             (Just v) -> Just (t, v)
 
+toLiteral :: Value -> Maybe String
+toLiteral v = case v of
+  (VBool vb) -> Just $ show vb
+  (VInt vi) -> Just $ show vi
+  (VChar vc) -> Just$ show vc
+  (VAdt name values) -> Just $ name ++ concatMap (\s -> ' ' : toLiteral s) values
+  _ -> Nothing
+
 printValue :: Value -> IO ()
-printValue v = case v of
-  (VBool vb) -> print vb
-  (VInt vi) -> print vi
-  (VChar vc) -> print vc
-  _ -> putStrLn "Result not showable."
+printValue v =
+  case toLiteral v of
+    (Just s) -> putStrLn s
+    Nothing -> return ()
