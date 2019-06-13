@@ -13,8 +13,8 @@ import qualified Text.Megaparsec.Char.Lexer as M
 import qualified Data.List as L
 
 data ADTContext = ADTContext {
-  getVars :: [String],
-  getCtors :: Map String (String, [Type])
+  getParserVars :: [String],
+  getParserCtors :: Map String (String, [Type])
 }
 
 type TParser = ParsecT Void String (State ADTContext)
@@ -92,7 +92,7 @@ adt :: TParser Type
 adt = do
   adtName <- constructor
   ctx <- get
-  if L.elem adtName (getVars ctx)
+  if L.elem adtName (getParserVars ctx)
     then return (TData adtName)
     else fail $ show adtName ++ "not in scope"
 
@@ -127,7 +127,7 @@ pADTParser = do
   ctorName <- constructor
   params <- some patternParser
   ctx <- get
-  if member ctorName (getCtors ctx)
+  if member ctorName (getParserCtors ctx)
     then return (PData ctorName params)
     else fail $ show ctorName ++ "not in scope"
 
@@ -140,7 +140,7 @@ adtParser = do
   adtName <- constructor
   void (symbol "=")
   ctx <- get
-  put (ctx{ getVars = (L.insert adtName (getVars ctx))})
+  put (ctx{ getParserVars = (L.insert adtName (getParserVars ctx))})
   fstCtor <- singleCtor adtName
   ctors <- some (symbol "|" *> (singleCtor adtName)) :: TParser [(String, [Type])]
   return (ADT adtName (fstCtor : ctors))
@@ -150,7 +150,7 @@ singleCtor adtName = do
   ctorName <- constructor
   paramsType <- many typeTerm :: TParser [Type]
   ctx <- get
-  put (ctx{ getCtors = (insert ctorName (adtName, paramsType) (getCtors ctx))})
+  put (ctx{ getParserCtors = (insert ctorName (adtName, paramsType) (getParserCtors ctx))})
   return (ctorName, paramsType)
 
 adtsParser :: TParser [ADT]
