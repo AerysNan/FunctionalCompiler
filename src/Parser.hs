@@ -15,7 +15,7 @@ import qualified Data.List as L
 data ADTContext = ADTContext {
   getParserVars :: [String],
   getParserCtors :: Map String (String, [Type])
-}
+} deriving (Show, Eq)
 
 type TParser = ParsecT Void String (State ADTContext)
 
@@ -111,9 +111,9 @@ patternParser = PIntLit <$> integerLiteral  --整数字面量
           <|> PBoolLit False <$ rword "False" --"False"
           <|> PVar <$> identifier  -- 变量
           <|> try (parens pADTParser) --有参数的代数数据类型
-          <|> do                        --无参数的代数数据类型
+          <|> (do                        --无参数的代数数据类型
                 ctorName <- constructor
-                return (PData ctorName [])
+                return (PData ctorName []))
 
 -- eg: data Maybe = Just Int | Nil
 --     data Either = Left Maybe | Right Char
@@ -142,7 +142,7 @@ adtParser = do
   ctx <- get
   put (ctx{ getParserVars = (L.insert adtName (getParserVars ctx))})
   fstCtor <- singleCtor adtName
-  ctors <- some (symbol "|" *> (singleCtor adtName)) :: TParser [(String, [Type])]
+  ctors <- many (symbol "|" *> (singleCtor adtName)) :: TParser [(String, [Type])]
   return (ADT adtName (fstCtor : ctors))
 
 singleCtor :: String -> TParser (String, [Type])
@@ -153,8 +153,8 @@ singleCtor adtName = do
   put (ctx{ getParserCtors = (insert ctorName (adtName, paramsType) (getParserCtors ctx))})
   return (ctorName, paramsType)
 
-adtsParser :: TParser [ADT]
-adtsParser = many (adtParser  <* symbol ";") :: TParser [ADT]
+--adtsParser :: TParser [ADT]
+--adtsParser = many (adtParser  <* symbol ";") :: TParser [ADT]
 
 --表达式
 exprTerm :: TParser Expr
@@ -164,14 +164,13 @@ exprTerm = EIntLit <$> integerLiteral  --整数字面量
       <|> EBoolLit False <$ rword "False" --"False"
       <|> EVar <$> identifier --变量
       <|> EVar <$> constructor -- 代数数据类型构造函数
-      <|> try ifExpr -- if 表达式
-      <|> try lambdaExpr -- lambda表达式
+      <|> ifExpr -- if 表达式
+      <|> lambdaExpr -- lambda表达式
       <|> try letExpr    -- let表达式)
       <|> try letRecExpr -- letRec表达式
       <|> try indentedCaseParser -- 有缩进case表达式
       <|> try unindentedCaseParser --无缩进case表达式
       <|> try (parens exprParser)   -- (算术/逻辑/关系运算)，加括号
-
 
 
 exprParser :: TParser Expr
@@ -270,8 +269,9 @@ unindentedCaseParser = do
   rword "case"
   expr0 <- exprParser
   rword "of"
-  pairs <- many (pairParser <* symbol ";" ):: TParser [(Pattern,Expr)]
-  return (ECase expr0 pairs)
+  fstPair <- pairParser
+  pairs <- many (symbol ";" *> pairParser):: TParser [(Pattern,Expr)]
+  return (ECase expr0 (fstPair : pairs))
 
 --有缩进的模式匹配
 -- case 2 of
@@ -302,16 +302,18 @@ assignParser = do
   Assign var <$> exprParser
 
 statementParser :: TParser Statement
-statementParser = assignParser
+statementParser = try assignParser
   <|> Class <$> adtParser
   <|> Single <$> exprParser
 
 
-inputParser:: String -> Either String Statement
-inputParser inpStr = let ep = evalState (runParserT (sc >> statementParser) "" inpStr) (ADTContext [] empty) in
+inputParser:: ADTContext -> String -> (Either String Statement, ADTContext)
+inputParser adtCtx inpStr = 
   case ep of
-    Right p -> Right p
-    Left msg -> Left (errorBundlePretty msg)
+    Right p -> (Right p, ctx)
+    Left msg -> (Left (errorBundlePretty msg), ctx)
+  where 
+    (ep, ctx) = runState (runParserT (sc >> statementParser) "" inpStr) $ adtCtx
 
 
 
