@@ -29,7 +29,7 @@ scn = M.space space1 lineCmnt blockCmnt
 
 --不消耗换行符，只消耗空白符和制表符
 sc :: TParser ()
-sc = M.space (void $ some (char ' ' <|> char '\t')) lineCmnt blockCmnt
+sc = M.space (void $ some (char ' ' <|> char '\t' <|> char '\n')) lineCmnt blockCmnt
   where
     lineCmnt  = M.skipLineComment "//"
     blockCmnt = M.skipBlockComment "/*" "*/"
@@ -168,8 +168,7 @@ exprTerm = EIntLit <$> integerLiteral  --整数字面量
       <|> try lambdaExpr -- lambda表达式
       <|> try letExpr    -- let表达式)
       <|> try letRecExpr -- letRec表达式
-      <|> try indentedCaseParser -- 有缩进case表达式
-      <|> try unindentedCaseParser --无缩进case表达式
+      <|> try caseParser --无缩进case表达式
       <|> try (parens exprParser)   -- (算术/逻辑/关系运算)，加括号
 
 
@@ -261,31 +260,17 @@ applyExpr = do
   return (EApply expr1 expr2)
 
 
---无缩进的模式匹配
--- case n of 1: n; x: 2-n;
+--模式匹配
+-- case n of 1: n| x: 2-n
 -- 各个case缩进保持一致
-unindentedCaseParser :: TParser Expr
-unindentedCaseParser = do
+caseParser :: TParser Expr
+caseParser = do
   rword "case"
   expr0 <- exprParser
   rword "of"
   fstPair <- pairParser
   pairs <- many (symbol "|" *> pairParser):: TParser [(Pattern,Expr)]
   return (ECase expr0 (fstPair : pairs))
-
---有缩进的模式匹配
--- case 2 of
---   1: 1
---   x: 2
--- 各个case缩进保持一致
-indentedCaseParser :: TParser Expr -- header and list items
-indentedCaseParser = M.nonIndented scn (M.indentBlock scn casePair)
-  where
-    casePair = do
-      rword "case"
-      expr0 <- exprParser
-      rword "of"
-      return (M.IndentSome Nothing (return . (ECase expr0)) pairParser)
 
 pairParser :: TParser (Pattern,Expr)
 pairParser = (do
@@ -306,14 +291,16 @@ statementParser = try assignParser
   <|> Class <$> adtParser
   <|> Single <$> exprParser
 
+statementsParser :: TParser [Statement]
+statementsParser = some (statementParser <* symbol ";")
 
-inputParser:: ADTContext -> String -> (Either String Statement, ADTContext)
+inputParser:: ADTContext -> String -> (Either String [Statement], ADTContext)
 inputParser adtCtx inpStr =
   case ep of
     Right p -> (Right p, ctx)
     Left msg -> (Left (errorBundlePretty msg), ctx)
   where
-    (ep, ctx) = runState (runParserT (sc >> statementParser) "" inpStr) $ adtCtx
+    (ep, ctx) = runState (runParserT (sc >> statementsParser) "" inpStr) $ adtCtx
 
 
 

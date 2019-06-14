@@ -24,6 +24,7 @@ dependencies:
   - HTF
   - mtl
   - text
+  - split
   - containers
   - megaparsec
   - parser-combinators
