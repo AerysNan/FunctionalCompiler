@@ -60,7 +60,7 @@ toLiteral v = case v of
   (VBool vb) -> Just $ show vb
   (VInt vi) -> Just $ show vi
   (VChar vc) -> Just$ show vc
-  (VAdt name values) -> Just $ name ++ concatMap (\s -> ' ' : toLiteral s) values
+  (VAdt name values) -> (++) <$> Just name <*> fmap concat (mapM (fmap ((:) ' ') . toLiteral) values)
   _ -> Nothing
 
 printValue :: Value -> IO ()
