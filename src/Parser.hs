@@ -164,8 +164,8 @@ exprTerm = EIntLit <$> integerLiteral  --整数字面量
       <|> EBoolLit False <$ rword "False" --"False"
       <|> EVar <$> identifier --变量
       <|> EVar <$> constructor -- 代数数据类型构造函数
-      <|> ifExpr -- if 表达式
-      <|> lambdaExpr -- lambda表达式
+      <|> try ifExpr -- if 表达式
+      <|> try lambdaExpr -- lambda表达式
       <|> try letExpr    -- let表达式)
       <|> try letRecExpr -- letRec表达式
       <|> try indentedCaseParser -- 有缩进case表达式
@@ -270,7 +270,7 @@ unindentedCaseParser = do
   expr0 <- exprParser
   rword "of"
   fstPair <- pairParser
-  pairs <- many (symbol ";" *> pairParser):: TParser [(Pattern,Expr)]
+  pairs <- many (symbol "|" *> pairParser):: TParser [(Pattern,Expr)]
   return (ECase expr0 (fstPair : pairs))
 
 --有缩进的模式匹配
@@ -289,7 +289,7 @@ indentedCaseParser = M.nonIndented scn (M.indentBlock scn casePair)
 
 pairParser :: TParser (Pattern,Expr)
 pairParser = (do
-  p <- (pADTParser <|> patternParser)
+  p <- (try pADTParser <|> patternParser)
   void (symbol ":")
   expr <- exprParser
   return (p,expr)) <?> "case pair"
@@ -308,11 +308,11 @@ statementParser = try assignParser
 
 
 inputParser:: ADTContext -> String -> (Either String Statement, ADTContext)
-inputParser adtCtx inpStr = 
+inputParser adtCtx inpStr =
   case ep of
     Right p -> (Right p, ctx)
     Left msg -> (Left (errorBundlePretty msg), ctx)
-  where 
+  where
     (ep, ctx) = runState (runParserT (sc >> statementParser) "" inpStr) $ adtCtx
 
 
